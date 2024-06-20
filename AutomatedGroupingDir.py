@@ -8,7 +8,7 @@ import csv
 # Define the setpoint for maximum distance considered as a grouping of equipments between two objects
 # Note: As long as a node is close enough to any of the nodes/equipment in a group it joins the group even if distance
 # to some nodes is larger than setpoint!
-MAX_GROUP_DIST = 0.1
+MAX_GROUP_DIST = 0.035
 
 print()    
 print("----------------------------------------------------------------------------------------------------------------------------")
