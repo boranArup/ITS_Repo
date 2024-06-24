@@ -200,5 +200,6 @@ with open(filename, 'w', newline='') as out_file:
     writer = csv.writer(out_file)
     writer.writerows(data)
 
-print(junctions)   
+print(junctions)
+   
 ''''''
