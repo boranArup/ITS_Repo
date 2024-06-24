@@ -4,6 +4,8 @@
 from sys import argv
 from math import sin, asin, cos, sqrt, radians, degrees, pow, atan2
 import csv
+
+
 # Function to find distances between sets of two coords, given in degrees
 def find_dist(x1, y1, x2, y2):
     x1 = radians(x1)
@@ -19,7 +21,28 @@ def find_dist(x1, y1, x2, y2):
     b = atan2(sqrt(a), sqrt(1-a))
     dist_calc = 12742 * b
     return dist_calc
-    
+
+
+#M7E-J9J9A-22141E-AID
+# Prepare ID string
+def form_groupID(idx):
+    id = ""
+    min = [100,100]
+    near_junctions = ["",""]
+    for junction in junctions:
+        dist = find_dist(float(junction[0]),float(junction[1]),f_lat[idx],f_long[idx])
+        if dist < min[0]:
+            min[0] = dist
+            near_junctions[0] = junction[2]
+        elif dist < min[1]:
+            min[1] = dist
+            near_junctions[1] = junction[2]
+    # TODO: FIX FLOATING JS
+    id = id + "J" + near_junctions[0] + "J" + near_junctions[1]
+    print(id)
+    #id.append()
+    #id.append("_")
+    return
 # Define the setpoint for maximum distance considered as a grouping of equipments between two objects
 # Note: As long as a node is close enough to any of the nodes/equipment in a group it joins the group even if distance
 # to some nodes is larger than setpoint!
@@ -143,7 +166,8 @@ except OSError:
     exit()
 with junctions_file:
     junctionCSV = csv.reader(junctions_file)
-    junctions = list(junctionCSV)
+    junctions = list(junctionCSV)    
+
 # Create and assign group numbers
 curr_group = 1
 groups = ["Group ID"] #initialized list
@@ -151,12 +175,14 @@ groups = ["Group ID"] #initialized list
 for i in range(1,num_entry):
     # Not grouped by default
     if closest_obj[i] == []:
+        form_groupID(i)
         groups.append(str(curr_group)+"_"+dir[i]+"_Solo") # Not grouped by default
         curr_group += 1
         
     ## belongs in a group and the index of the neighbour has not been given a group yet
     elif all(idx > len(groups) for idx in closest_obj[i]):
         # create new group
+        form_groupID(i)
         groups.append(str(curr_group)+"_"+dir[i]) # New Group
         curr_group += 1
     
@@ -167,12 +193,14 @@ for i in range(1,num_entry):
         for idx in closest_obj[i]:
             if dir[idx] == dir[i]:
                 # If in the same direction then they are compatible for grouping
+                form_groupID(i)
                 groups.append(str(groups[closest_obj[i][0]]))   # Same group as friend
                 found_flag = True                               # No issue with choosing the first object as the order in which they are added is consistent for all groups
                 break
         if not found_flag:
             # If you get here that means that although nodes are near enough to it none of them are grouped with it (maybe yet)
             # and therefore create new grouping seperate
+            form_groupID(i)
             groups.append(str(curr_group) + "_" + dir[i]) # New Group
             curr_group += 1
         
