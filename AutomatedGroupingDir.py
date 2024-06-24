@@ -27,6 +27,14 @@ def find_dist(x1, y1, x2, y2):
 # Prepare ID string
 def form_groupID(idx):
     id = ""
+    
+    # Match to marker allong motorway
+    # Road name
+    id = id #TODO: INTIGRATE THE ROAD MARKERS IN WITH REST TO GET THE FULL NAME
+    
+    id = id + "_"
+    
+    # Match to 2 nearest junctions
     min = [100,100]
     near_junctions = ["",""]
     for junction in junctions:
@@ -37,9 +45,16 @@ def form_groupID(idx):
         elif dist < min[1]:
             min[1] = dist
             near_junctions[1] = junction[2]
-    # TODO: FIX FLOATING JS
-    id = id + "J" + near_junctions[0] + "J" + near_junctions[1]
-    print(id)
+            
+    # Junctions        
+    if near_junctions[0] == "":
+        id = id + "NA"
+    elif near_junctions[0] == "":
+        id = id + "J" + near_junctions[0] + "J" + near_junctions[0]
+    else:
+        id = id + "J" + near_junctions[0] + "J" + near_junctions[1]
+    
+    id = id + "_"
     #id.append()
     #id.append("_")
     return
@@ -230,4 +245,5 @@ with open(filename, 'w', newline='') as out_file:
 
 print(junctions)
    
-''''''
+'''
+'''
