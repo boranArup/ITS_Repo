@@ -1,14 +1,31 @@
 # Personal paths for use
-#  C:/Users/leonardo.boran/AppData/Local/miniforge3/envs/arup-env/python.exe c:/Users/leonardo.boran/AutomatedGroupingDir.py ".\OneDrive - Arup\\TestCoordsCSV.csv" OutputCSV.csv
+#  C:/Users/leonardo.boran/AppData/Local/miniforge3/envs/arup-env/python.exe "c:/Users/leonardo.boran/OneDrive - Arup/ITS_Repo/AutomatedGroupingDir.py" TestCoordsCSV.csv OutputCSV.csv
 
 from sys import argv
 from math import sin, asin, cos, sqrt, radians, degrees, pow, atan2
 import csv
-
+# Function to find distances between sets of two coords, given in degrees
+def find_dist(x1, y1, x2, y2):
+    x1 = radians(x1)
+    x2 = radians(x2)
+    y1 = radians(y1)
+    y2 = radians(y2)
+    
+    diff_lat = (x1-x2)
+    diff_long = (y1-y2)
+    a = (sin(diff_lat / 2) * sin(diff_lat / 2) +
+            cos(x1) * cos((x2)) *
+            sin(diff_long / 2) * sin(diff_long / 2))
+    b = atan2(sqrt(a), sqrt(1-a))
+    dist_calc = 12742 * b
+    return dist_calc
+    
 # Define the setpoint for maximum distance considered as a grouping of equipments between two objects
 # Note: As long as a node is close enough to any of the nodes/equipment in a group it joins the group even if distance
 # to some nodes is larger than setpoint!
 MAX_GROUP_DIST = 0.035
+data =[[]]
+junctions =[[]]
 
 print()    
 print("----------------------------------------------------------------------------------------------------------------------------")
@@ -85,13 +102,7 @@ for i in range(1,num_entry):
     if i not in missing_data:
         for j in range(1, num_entry):
             if j not in missing_data and j != i:
-                diff_lat = (f_lat[j]-f_lat[i])
-                diff_long = (f_long[j]-f_long[i])
-                a = (sin(diff_lat / 2) * sin(diff_lat / 2) +
-                        cos(f_lat[j]) * cos((f_lat[i])) *
-                        sin(diff_long / 2) * sin(diff_long / 2))
-                b = atan2(sqrt(a), sqrt(1-a))
-                dist_calc = 12742 * b
+                dist_calc = find_dist(f_lat[i],f_long[i],f_lat[j],f_long[j],)
                 
                 if dist_calc < MAX_GROUP_DIST:
                     if dist_calc < min_dist[i]:
@@ -119,7 +130,20 @@ for i in range(1, num_entry):
             dir[i] = dir[i] + "W"    
 print(dir)       
 print()
- 
+
+#Prepare Junction data for group ID
+filename_junctions = "ManualJunctions.csv"
+#Read the existing CSV file and store its content
+try:
+    junctions_file = open(filename_junctions, mode ='r') 
+except OSError:
+    print("----------------------------------------------------------------------------------------------------------------------------")
+    print("ERROR: Filenames/Location. Please ensure path to junctions file is correct and are enclosed in \"\".")
+    print("----------------------------------------------------------------------------------------------------------------------------")
+    exit()
+with junctions_file:
+    junctionCSV = csv.reader(junctions_file)
+    junctions = list(junctionCSV)
 # Create and assign group numbers
 curr_group = 1
 groups = ["Group ID"] #initialized list
@@ -171,9 +195,10 @@ for i in range(1, num_entry):
 
 # For testing: OutputCSV.csv
 # Write the updated data to new/old CSV file
-filename = prefix + str(argv[2])
+filename =  str(argv[2])
 with open(filename, 'w', newline='') as out_file:
     writer = csv.writer(out_file)
     writer.writerows(data)
-    
+
+print(junctions)   
 ''''''
