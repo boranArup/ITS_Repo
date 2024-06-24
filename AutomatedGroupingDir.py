@@ -83,8 +83,8 @@ f_long.append(0)
 
 for i in range(1,num_entry):
     if data[i][18] != "":
-        f_lat.append(radians(float((data[i][18]))))
-        f_long.append(radians(float((data[i][19]))))
+        f_lat.append((float((data[i][18]))))
+        f_long.append((float((data[i][19]))))
     else:
         missing_data.append(i)      # Add index to missing data
         f_lat.append(0)
