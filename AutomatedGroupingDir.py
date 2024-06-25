@@ -5,6 +5,15 @@ from sys import argv
 from math import sin, asin, cos, sqrt, radians, degrees, pow, atan2
 import csv
 
+# Define the setpoint for maximum distance considered as a grouping of equipments between two objects
+# Note: As long as a node is close enough to any of the nodes/equipment in a group it joins the group even if distance
+# to some nodes is larger than setpoint!
+MAX_GROUP_DIST = 0.035
+data =[[]]
+junctions =[[]]
+markers = [[]]
+
+# FUNCTIONS:
 # Function to find distances between sets of two coords, given in degrees
 def find_dist(x1, y1, x2, y2):
     x1 = radians(x1)
@@ -22,23 +31,33 @@ def find_dist(x1, y1, x2, y2):
     return dist_calc
 
 
-#M7E-J9J9A-22141E-AID
+#M7E-J9J9A-22141E   (-AID)
 # Prepare ID string
 def form_groupID(idx):
     id = ""
     
     # Match to marker allong motorway
     # Road name
-    markeridx = 0
-    markerdist = 1000
+    
+    # Save 3 closest markers as this ensures you get the nearest and the next closest one to the pair of two
+    # which indicates what side of the "gate we are on"
+    markeridx = [0,0,0]
+    markerdist = [1000,1000,1000]
     for i in range(0,len(markers)):
         dist = find_dist(float(markers[i][1]),float(markers[i][0]),f_lat[idx],f_long[idx])
-        if markerdist > dist:
-            markerdist = dist
-            markeridx = i
+        if markerdist[0] > dist:
+            markerdist[0] = dist
+            markeridx[0] = i
+        elif markerdist[1] > dist:
+            markerdist[1] = dist
+            markeridx[1] = i
+        elif markerdist[2] > dist:
+            markerdist[2] = dist
+            markeridx[2] = i
+            
     # Markersidx shows nearest marker
-    #print(markerdist)        
-    id = markers[markeridx][4] + markers[markeridx][5] + markers[markeridx][6] + "_"
+    # Eg. M7E_       
+    id = markers[markeridx[0]][4] + markers[markeridx[0]][5] + markers[markeridx[0]][6] + "-"
     
     # Match to 2 nearest junctions
     min = [100,100]
@@ -46,8 +65,12 @@ def form_groupID(idx):
     for junction in junctions:
         dist = find_dist(float(junction[0]),float(junction[1]),f_lat[idx],f_long[idx])
         if dist < min[0]:
+            # Store old min in second place
+            min[1] = min[0]
+            near_junctions[1] = near_junctions[0]
             min[0] = dist
             near_junctions[0] = junction[2]
+            
         elif dist < min[1]:
             min[1] = dist
             near_junctions[1] = junction[2]
@@ -60,25 +83,34 @@ def form_groupID(idx):
     else:
         id = id + "J" + near_junctions[0] + "J" + near_junctions[1]
     
-    id = id + "_"
-    lenghtofroad = round((float(markers[markeridx][2]) + markerdist)*1000)
-    print(markeridx, end=" ")
-    print(markers[markeridx][2], end=" ")
-    print(markerdist)
-    id = id + str(lenghtofroad) + markers[markeridx][6]
+    distuse = 0.0
+    lenghtofroad = 0.0
+    # Make sure not to select the maker from the same gate
+    # If 1 index is not the same as the 0 gate use this
+    if float(markers[markeridx[0]][2]) != float(markers[markeridx[1]][2]):
+        distuse = float(markers[markeridx[1]][2])
+    # Use marker at index 2 as the different one
+    else:
+         distuse = float(markers[markeridx[2]][2])
+         
+    if distuse - float(markers[markeridx[0]][2]) < 0:
+        lenghtofroad = round((float(markers[markeridx[0]][2]) - markerdist[0]) * 1000)
+    else:
+        lenghtofroad = round((float(markers[markeridx[0]][2]) + markerdist[0]) * 1000)
 
+    # Eg. M7E_J9J9A_22141E
+    id = id + "-"
+    id = id + str(lenghtofroad) + markers[markeridx[0]][6]
+    print(data[idx][18], end=" ")
+    print(data[idx][19], end="  ")
+    print(id, end="   ")
+    
+    print(min)
     #TODO: VERIFY JUNCTION MATCHING TO BE CORRECT, JUDGE THE J11J11 AND NA CATAGORISED ONES
     return(id)
 
 
-# Define the setpoint for maximum distance considered as a grouping of equipments between two objects
-# Note: As long as a node is close enough to any of the nodes/equipment in a group it joins the group even if distance
-# to some nodes is larger than setpoint!
-MAX_GROUP_DIST = 0.035
-data =[[]]
-junctions =[[]]
-markers = [[]]
-
+# CHECK FOR ERRORS IN INPUT:
 print()    
 print("----------------------------------------------------------------------------------------------------------------------------")
 print("NOTE: If the following error occurs, please make sure either the write file is not currently in use by another application.\n\t\t\"PermissionError: [Errno 13] Permission denied...\"")
@@ -94,7 +126,7 @@ if len(argv) != 3:
 
 prefix = ".\OneDrive - Arup\\"
 filename =  str(argv[1])
-#prefix
+
 # Basic read and print out full csv
 '''   
 with open(filename, mode ='r') as file:
@@ -180,8 +212,8 @@ for i in range(1, num_entry):
             dir[i] = dir[i] + "E"
         if "WEST" in temp:
             dir[i] = dir[i] + "W"    
-print(dir)       
-print()
+#print(dir)       
+#print()
 
 #Prepare Junction data for group ID
 filename_junctions = "ManualJunctions.csv"
@@ -210,8 +242,6 @@ except OSError:
 with markers_file:
     markerCSV = csv.reader(markers_file)
     markers = list(markerCSV)    
-
-
 
 
 # Create and assign group numbers
@@ -250,10 +280,8 @@ for i in range(1,num_entry):
             groups.append(form_groupID(i)) # New Group
             curr_group += 1
     
+    # UNCOMMENT FOR INFO ON ALL PAIRINGS IN A MAKESHIFT TABLE
     '''
-    
-    
-        
     print("Group No. : " +  "%15s" %str(groups[i]) + ",\t Index : " + str(i) + ",\t Neighbour : " + "%25s" % str(closest_obj[i]) + ",\t ID : " +  "%11s" %str(data[i][1]), end=" | ")
     #print("ID : " +  "%23s" %str(data[i][0]), end=" | ")
     for item in closest_obj[i]:
@@ -265,6 +293,7 @@ print(groups)
 print()    
 print(len(groups))
 '''
+
 data[0].append('Group ID')
 
 # Add the new column values to the remaining rows of the data
@@ -278,7 +307,4 @@ with open(filename, 'w', newline='') as out_file:
     writer = csv.writer(out_file)
     writer.writerows(data)
 
-print(junctions)
-   
-'''
-'''
+print("Task completed with no errors :)")
