@@ -9,8 +9,9 @@ import csv
 # Note: As long as a node is close enough to any of the nodes/equipment in a group it joins the group even if distance
 # to some nodes is larger than setpoint!
 MAX_GROUP_DIST = 0.035
-data =[[]]
-junctions =[[]]
+data = [[]]
+junctions = [[]]
+junctiondists = []
 markers = [[]]
 
 # FUNCTIONS:
@@ -60,29 +61,68 @@ def form_groupID(idx):
     id = markers[markeridx[0]][4] + markers[markeridx[0]][5] + markers[markeridx[0]][6] + "-"
     
     # Match to 2 nearest junctions
-    min = [100,100]
-    near_junctions = ["",""]
-    for junction in junctions:
-        dist = find_dist(float(junction[0]),float(junction[1]),f_lat[idx],f_long[idx])
+    min = [100,100,100]
+    near_idx = [-1,-1,-1]
+    for i in range(0,len(junctions)):
+        dist = find_dist(float(junctions[i][0]),float(junctions[i][1]),f_lat[idx],f_long[idx])
         if dist < min[0]:
-            # Store old min in second place
+            # Shift 0 -> 1 and 1 -> 2
+            # 1 -> 2
+            min[2] = min[1]
+            near_idx[2] = near_idx[1]
+            
+            # 0 -> 1
             min[1] = min[0]
-            near_junctions[1] = near_junctions[0]
+            near_idx[1] = near_idx[0]
+            
             min[0] = dist
-            near_junctions[0] = junction[2]
+            near_idx[0] = i
             
         elif dist < min[1]:
-            min[1] = dist
-            near_junctions[1] = junction[2]
+            # Shift down
+            min[2] = min[1]
+            near_idx[2] = near_idx[1]
             
-    # Junctions        
-    if near_junctions[0] == "":
-        id = id + "NA"
-    elif near_junctions[1] == "":
-        id = id + "J" + near_junctions[0] + "J" + near_junctions[0]
+            min[1] = dist
+            near_idx[1] = i
+        
+        elif dist < min[2]:
+            # Overwrite
+            min[2] = dist
+            near_idx[2] = i
+            
+    # Junctions
+    # TODO: ADAPT THIS SECTION TO YOUR ALGORITHM 
+    print("Near id "+ str(near_idx[0]))
+    if near_idx[0] == -1:
+        # There is no near junction
+        id = "NOT-IN-SCOPE"
     else:
-        id = id + "J" + near_junctions[0] + "J" + near_junctions[1]
+        # Calculate if between junction pair
+        dist0 = find_dist(float(junctions[near_idx[0]][0]),float(junctions[near_idx[0]][1]),f_lat[idx],f_long[idx])
+        dist1 = find_dist(float(junctions[near_idx[1]][0]),float(junctions[near_idx[1]][1]),f_lat[idx],f_long[idx])
+        
+        # Default to using 0 and 1 as normal
+        chosen_idx = near_idx[1]
+        
+        # Check if 0 and 1 are *NOT* two ends of a junction and the equipment is within these bounds
+        if junctiondists[near_idx[0]] < dist0 or junctiondists[near_idx[0]] < dist1:        
+            # Check if 0 and 1 have same junction name
+            if junctions[near_idx[0]][2] == junctions[near_idx[1]][2]:
+                # Use 0 and 2
+                chosen_idx = near_idx[2]
+
+        id = id + "J" + junctions[near_idx[0]][2] + "J" + junctions[chosen_idx][2]
+
     
+    '''      
+    if near_idx[0] == "":
+        id = id + "NA"
+    elif near_idx[1] == "":
+        id = id + "J" + near_idx[0] + "J" + near_idx[0]
+    else:
+        id = id + "J" + near_idx[0] + "J" + near_idx[1]
+    '''  
     distuse = 0.0
     lenghtofroad = 0.0
     # Make sure not to select the maker from the same gate
@@ -106,7 +146,7 @@ def form_groupID(idx):
     print(id, end="   ")
     
     print(min)
-    #TODO: VERIFY JUNCTION MATCHING TO BE CORRECT, JUDGE THE J11J11 AND NA CATAGORISED ONES
+    #TODO: VERIFY JUNCTION MATCHING TO BE CORRECT, JUDGE THE J11J11 AND NA CATEGORIZED ONES
     #TODO: VERIFY HEADING, ARE THE ROAD MARKERS GOOD ENOUGH?
     return(id)
 
@@ -226,9 +266,26 @@ except OSError:
     print("ERROR: Filenames/Location. Please ensure path to junctions file is correct and are enclosed in \"\".")
     print("----------------------------------------------------------------------------------------------------------------------------")
     exit()
+    
 with junctions_file:
     junctionCSV = csv.reader(junctions_file)
-    junctions = list(junctionCSV)    
+    junctions = list(junctionCSV)
+    
+for source in range(0, len(junctions)):
+    # Determine if in a pair
+    junctiondists.append(-1)
+    for target in range(0, len(junctions)):
+        if junctions[target][2] == junctions[source][2] and junctions[target][1] != junctions[source][1]:
+            # These are together
+            # Get the distances between matching junctions
+            junctiondists[source] = find_dist(float(junctions[source][0]), float(junctions[source][1]), float(junctions[target][0]), float(junctions[target][1]))
+            break
+    print([source], end=", ")
+    print(junctions[source], end=", ")
+    print(junctiondists[source])
+
+
+
 
 #Prepare Junction data for group ID
 filename_markers = "M7_N7.csv"
@@ -271,12 +328,12 @@ for i in range(1,num_entry):
             if dir[idx] == dir[i]:
                 # If in the same direction then they are compatible for grouping
                 form_groupID(i)
-                groups.append(str(groups[closest_obj[i][0]]))   # Same group as friend
+                groups.append(str(groups[closest_obj[i][0]]))   # Same group as closest 
                 found_flag = True                               # No issue with choosing the first object as the order in which they are added is consistent for all groups
                 break
         if not found_flag:
             # If you get here that means that although nodes are near enough to it none of them are grouped with it (maybe yet)
-            # and therefore create new grouping seperate
+            # and therefore create new grouping separate
             
             groups.append(form_groupID(i)) # New Group
             curr_group += 1
