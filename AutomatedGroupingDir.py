@@ -5,7 +5,6 @@ from sys import argv
 from math import sin, asin, cos, sqrt, radians, degrees, pow, atan2
 import csv
 
-
 # Function to find distances between sets of two coords, given in degrees
 def find_dist(x1, y1, x2, y2):
     x1 = radians(x1)
@@ -30,9 +29,16 @@ def form_groupID(idx):
     
     # Match to marker allong motorway
     # Road name
-    id = id #TODO: INTIGRATE THE ROAD MARKERS IN WITH REST TO GET THE FULL NAME
-    
-    id = id + "_"
+    markeridx = 0
+    markerdist = 1000
+    for i in range(0,len(markers)):
+        dist = find_dist(float(markers[i][1]),float(markers[i][0]),f_lat[idx],f_long[idx])
+        if markerdist > dist:
+            markerdist = dist
+            markeridx = i
+    # Markersidx shows nearest marker
+    #print(markerdist)        
+    id = markers[markeridx][4] + markers[markeridx][5] + markers[markeridx][6] + "_"
     
     # Match to 2 nearest junctions
     min = [100,100]
@@ -49,21 +55,29 @@ def form_groupID(idx):
     # Junctions        
     if near_junctions[0] == "":
         id = id + "NA"
-    elif near_junctions[0] == "":
+    elif near_junctions[1] == "":
         id = id + "J" + near_junctions[0] + "J" + near_junctions[0]
     else:
         id = id + "J" + near_junctions[0] + "J" + near_junctions[1]
     
     id = id + "_"
-    #id.append()
-    #id.append("_")
-    return
+    lenghtofroad = round((float(markers[markeridx][2]) + markerdist)*1000)
+    print(markeridx, end=" ")
+    print(markers[markeridx][2], end=" ")
+    print(markerdist)
+    id = id + str(lenghtofroad) + markers[markeridx][6]
+
+    #TODO: VERIFY JUNCTION MATCHING TO BE CORRECT, JUDGE THE J11J11 AND NA CATAGORISED ONES
+    return(id)
+
+
 # Define the setpoint for maximum distance considered as a grouping of equipments between two objects
 # Note: As long as a node is close enough to any of the nodes/equipment in a group it joins the group even if distance
 # to some nodes is larger than setpoint!
 MAX_GROUP_DIST = 0.035
 data =[[]]
 junctions =[[]]
+markers = [[]]
 
 print()    
 print("----------------------------------------------------------------------------------------------------------------------------")
@@ -183,6 +197,23 @@ with junctions_file:
     junctionCSV = csv.reader(junctions_file)
     junctions = list(junctionCSV)    
 
+#Prepare Junction data for group ID
+filename_markers = "M7_N7.csv"
+#Read the existing CSV file and store its content
+try:
+    markers_file = open(filename_markers, mode ='r') 
+except OSError:
+    print("----------------------------------------------------------------------------------------------------------------------------")
+    print("ERROR: Filenames/Location. Please ensure path to junctions file is correct and are enclosed in \"\".")
+    print("----------------------------------------------------------------------------------------------------------------------------")
+    exit()
+with markers_file:
+    markerCSV = csv.reader(markers_file)
+    markers = list(markerCSV)    
+
+
+
+
 # Create and assign group numbers
 curr_group = 1
 groups = ["Group ID"] #initialized list
@@ -191,14 +222,14 @@ for i in range(1,num_entry):
     # Not grouped by default
     if closest_obj[i] == []:
         form_groupID(i)
-        groups.append(str(curr_group)+"_"+dir[i]+"_Solo") # Not grouped by default
+        groups.append(form_groupID(i)) # Not grouped by default
         curr_group += 1
         
     ## belongs in a group and the index of the neighbour has not been given a group yet
     elif all(idx > len(groups) for idx in closest_obj[i]):
         # create new group
         form_groupID(i)
-        groups.append(str(curr_group)+"_"+dir[i]) # New Group
+        groups.append(form_groupID(i)) # New Group
         curr_group += 1
     
     # Join existing group if in same direction
@@ -215,9 +246,13 @@ for i in range(1,num_entry):
         if not found_flag:
             # If you get here that means that although nodes are near enough to it none of them are grouped with it (maybe yet)
             # and therefore create new grouping seperate
-            form_groupID(i)
-            groups.append(str(curr_group) + "_" + dir[i]) # New Group
+            
+            groups.append(form_groupID(i)) # New Group
             curr_group += 1
+    
+    '''
+    
+    
         
     print("Group No. : " +  "%15s" %str(groups[i]) + ",\t Index : " + str(i) + ",\t Neighbour : " + "%25s" % str(closest_obj[i]) + ",\t ID : " +  "%11s" %str(data[i][1]), end=" | ")
     #print("ID : " +  "%23s" %str(data[i][0]), end=" | ")
@@ -229,7 +264,7 @@ print()
 print(groups)
 print()    
 print(len(groups))
-
+'''
 data[0].append('Group ID')
 
 # Add the new column values to the remaining rows of the data
