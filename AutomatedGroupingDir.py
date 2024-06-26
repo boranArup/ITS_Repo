@@ -2,8 +2,9 @@
 #  C:/Users/leonardo.boran/AppData/Local/miniforge3/envs/arup-env/python.exe "c:/Users/leonardo.boran/OneDrive - Arup/ITS_Repo/AutomatedGroupingDir.py" TestCoordsCSV.csv OutputCSV.csv
 
 from sys import argv
-from math import sin, asin, cos, sqrt, radians, degrees, pow, atan2
+from math import sin, acos, cos, sqrt, radians, degrees, atan2
 import csv
+import bisect
 
 # Define the setpoint for maximum distance considered as a grouping of equipments between two objects
 # Note: As long as a node is close enough to any of the nodes/equipment in a group it joins the group even if distance
@@ -13,8 +14,37 @@ data = [[]]
 junctions = [[]]
 junctiondists = []
 markers = [[]]
+dir = ["Direction"]
+
 
 # FUNCTIONS:
+# Function to find angle between junctions (3 coords)
+def find_angle(x1,y1,x2,y2,x3,y3):
+# Calculate the vectors between the points
+    ang = degrees(atan2(y3-y2, x3-x2) - atan2(y1-y2, x1-x2))
+    if ang < 0:
+        ang = ang * -1
+    if ang > 180:
+        ang = 360 - ang
+    return ang
+
+# Checks if junctions are in the same direction
+def same_dir(j1, j2, j3):
+    ########################################################################################################
+    # Edit acute angle (degrees if motorway or road has large bends or small distances between junctions)  #
+    ########################################################################################################
+    acute = 80
+    
+    angle = find_angle(float(j1[0]),float(j1[1]),float(j2[0]),float(j2[1]),float(j3[0]),float(j3[1]))
+    if angle > acute:
+        return True
+    else:
+        return False
+    
+    
+
+
+
 # Function to find distances between sets of two coords, given in degrees
 def find_dist(x1, y1, x2, y2):
     x1 = radians(x1)
@@ -35,6 +65,8 @@ def find_dist(x1, y1, x2, y2):
 #M7E-J9J9A-22141E   (-AID)
 # Prepare ID string
 def form_groupID(idx):
+    print()
+    print()
     id = ""
     
     # Match to marker allong motorway
@@ -43,7 +75,9 @@ def form_groupID(idx):
     # Save 3 closest markers as this ensures you get the nearest and the next closest one to the pair of two
     # which indicates what side of the "gate we are on"
     markeridx = [0,0,0]
-    markerdist = [1000,1000,1000]
+    # Markers are 500m appart so conservative 0.75km max set as any point on the road has to be in range of 3-6 markers
+    # but these margins are slightly expanded to allow for equipment to be slightly offroad
+    markerdist = [0.75,0.75,0.75]
     for i in range(0,len(markers)):
         dist = find_dist(float(markers[i][1]),float(markers[i][0]),f_lat[idx],f_long[idx])
         if markerdist[0] > dist:
@@ -57,71 +91,87 @@ def form_groupID(idx):
             markeridx[2] = i
             
     # Markersidx shows nearest marker
-    # Eg. M7E_       
-    id = markers[markeridx[0]][4] + markers[markeridx[0]][5] + markers[markeridx[0]][6] + "-"
+    # Eg. M7E_
+    used_dir = ""
+    
+    # Trust the information most from the equipment list
+    # Is this information not available
+    if dir[idx] == "":
+        used_dir = markers[markeridx[0]][6]
+    else:
+        if markers[markeridx[0]][6] == dir[idx]:
+            used_dir = markers[markeridx[0]][6]
+        else:
+            used_dir = dir[idx]
+    id = markers[markeridx[0]][4] + markers[markeridx[0]][5] + used_dir + "-"
     
     # Match to 2 nearest junctions
-    min = [100,100,100]
-    near_idx = [-1,-1,-1]
+    max_between_junct = 100
+    
+    minjuncts = []
     for i in range(0,len(junctions)):
         dist = find_dist(float(junctions[i][0]),float(junctions[i][1]),f_lat[idx],f_long[idx])
-        if dist < min[0]:
-            # Shift 0 -> 1 and 1 -> 2
-            # 1 -> 2
-            min[2] = min[1]
-            near_idx[2] = near_idx[1]
-            
-            # 0 -> 1
-            min[1] = min[0]
-            near_idx[1] = near_idx[0]
-            
-            min[0] = dist
-            near_idx[0] = i
-            
-        elif dist < min[1]:
-            # Shift down
-            min[2] = min[1]
-            near_idx[2] = near_idx[1]
-            
-            min[1] = dist
-            near_idx[1] = i
-        
-        elif dist < min[2]:
-            # Overwrite
-            min[2] = dist
-            near_idx[2] = i
+        if dist > max_between_junct:
+            i = -1
+            dist = max_between_junct
+        bisect.insort(minjuncts, [ dist, i])
             
     # Junctions
     # TODO: ADAPT THIS SECTION TO YOUR ALGORITHM 
-    print("Near id "+ str(near_idx[0]))
-    if near_idx[0] == -1:
+    print("Near id "+ str(minjuncts[0][1]), end=" ")
+    if minjuncts[0][1] == -1 or markerdist[0] >= 0.75:
         # There is no near junction
         id = "NOT-IN-SCOPE"
+        print(data[idx][18], end=" ")
+        print(data[idx][19], end="  ")
+        print(id, end="  ")
+        print(minjuncts[0][0])
+        
+        return(id) 
+    
     else:
         # Calculate if between junction pair
-        dist0 = find_dist(float(junctions[near_idx[0]][0]),float(junctions[near_idx[0]][1]),f_lat[idx],f_long[idx])
-        dist1 = find_dist(float(junctions[near_idx[1]][0]),float(junctions[near_idx[1]][1]),f_lat[idx],f_long[idx])
+        dist0 = find_dist(float(junctions[minjuncts[0][1]][0]),float(junctions[minjuncts[0][1]][1]),f_lat[idx],f_long[idx])
+        dist1 = find_dist(float(junctions[minjuncts[1][1]][0]),float(junctions[minjuncts[1][1]][1]),f_lat[idx],f_long[idx])
         
         # Default to using 0 and 1 as normal
-        chosen_idx = near_idx[1]
+        chosen_idx = minjuncts[1][1]
         
         # Check if 0 and 1 are *NOT* two ends of a junction and the equipment is within these bounds
-        if junctiondists[near_idx[0]] < dist0 or junctiondists[near_idx[0]] < dist1:        
+        print(junctions[minjuncts[0][1]], end=" ")
+        print(", Distance between junctions: ", end=" ")
+        print(junctiondists[minjuncts[0][1]], end=" ")
+        
+        print()
+        if junctiondists[minjuncts[0][1]] < dist0 or junctiondists[minjuncts[0][1]] < dist1:
+    
+            print("Not within junction")        
             # Check if 0 and 1 have same junction name
-            if junctions[near_idx[0]][2] == junctions[near_idx[1]][2]:
-                # Use 0 and 2
-                chosen_idx = near_idx[2]
-
-        id = id + "J" + junctions[near_idx[0]][2] + "J" + junctions[chosen_idx][2]
+            if junctions[minjuncts[0][1]][2] == junctions[minjuncts[1][1]][2]:
+                print("Has the same name tho")
+                
+                # Check if 2 is a suitable junction or is the following junction nearer by and being incorrectly chosen
+                i = 0
+                
+                while same_dir(junctions[minjuncts[i][1]],junctions[minjuncts[i+1][1]],junctions[minjuncts[i+2][1]]):
+                    # Go to the next junction and recheck if its in the same direction
+                    i += 1
+              
+                # Not in the same direction as the two junction parts use this
+                chosen_idx = minjuncts[i+2][1]   
+        else:
+            print("Within Junction")
+            
+        id = id + "J" + junctions[minjuncts[0][1]][2] + "J" + junctions[chosen_idx][2]
 
     
     '''      
-    if near_idx[0] == "":
+    if minjuncts[0][1] == "":
         id = id + "NA"
-    elif near_idx[1] == "":
-        id = id + "J" + near_idx[0] + "J" + near_idx[0]
+    elif minjuncts[1][1] == "":
+        id = id + "J" + minjuncts[0][1] + "J" +minjuncts[0][1]
     else:
-        id = id + "J" + near_idx[0] + "J" + near_idx[1]
+        id = id + "J" + minjuncts[0][1] + "J" + minjuncts[1][1]
     '''  
     distuse = 0.0
     lenghtofroad = 0.0
@@ -140,19 +190,24 @@ def form_groupID(idx):
 
     # Eg. M7E_J9J9A_22141E
     id = id + "-"
-    id = id + str(lenghtofroad) + markers[markeridx[0]][6]
+    id = id + str(lenghtofroad) + used_dir
+    
+    if "JEND" in id or "JSTART" in id:
+        id = "NOT-IN-SCOPE"
+        
     print(data[idx][18], end=" ")
     print(data[idx][19], end="  ")
-    print(id, end="   ")
+    print(id, end="  ")
+    print(minjuncts[0][0])
     
-    print(min)
     #TODO: VERIFY JUNCTION MATCHING TO BE CORRECT, JUDGE THE J11J11 AND NA CATEGORIZED ONES
     #TODO: VERIFY HEADING, ARE THE ROAD MARKERS GOOD ENOUGH?
+    
     return(id)
 
 
 # CHECK FOR ERRORS IN INPUT:
-print()    
+print()   
 print("----------------------------------------------------------------------------------------------------------------------------")
 print("NOTE: If the following error occurs, please make sure either the write file is not currently in use by another application.\n\t\t\"PermissionError: [Errno 13] Permission denied...\"")
 print("----------------------------------------------------------------------------------------------------------------------------")
@@ -195,8 +250,8 @@ num_entry = len(data) # Number of rows
 
 # data[][18] -> latitude col
 # data[][19] -> longitude col
-closest_obj = [[-1]]    # 2D list containing the list of nodes/equipement withing grouping distance
-min_dist = [-1]         # Collum Header
+closest_obj = [[-1]]    # 2D list containing the list of nodes/equipment withing grouping distance
+min_dist = [-1]         # Colum Header
 # TODO:Remove min_dist as this information doesn't need to be stored
 f_lat = []              # Float in radians
 f_long = []             #
@@ -235,24 +290,25 @@ for i in range(1,num_entry):
                     closest_obj[i].append(j)
 
 #Fix Directions
-dir = ["Direction"]
 for i in range(1, num_entry):
     temp = data[i][17].upper()
     if len(temp) == 0:
-        dir.append("N/A")
-    elif len(temp) < 3:
+        dir.append("")
+    elif len(temp) == 1:
         dir.append(temp)
     else:
         #Find substrings and append
         dir.append("")
-        if "NORTH" in temp:
-            dir[i] = dir[i] + "N"
-        if "SOUTH" in temp:
-            dir[i] = dir[i] + "S"    
         if "EAST" in temp:
             dir[i] = dir[i] + "E"
-        if "WEST" in temp:
-            dir[i] = dir[i] + "W"    
+        elif "WEST" in temp:
+            dir[i] = dir[i] + "W"
+        #elif "NORTH" in temp:
+            #dir[i] = dir[i] + "N"
+        #elif "SOUTH" in temp:
+            #dir[i] = dir[i] + "S"    
+            #TODO: DO YOU WANT TO TRANSLATE THESE TO EAST AND WEST???
+
 #print(dir)       
 #print()
 
@@ -285,8 +341,6 @@ for source in range(0, len(junctions)):
     print(junctiondists[source])
 
 
-
-
 #Prepare Junction data for group ID
 filename_markers = "M7_N7.csv"
 #Read the existing CSV file and store its content
@@ -309,14 +363,12 @@ groups = ["Group ID"] #initialized list
 for i in range(1,num_entry):
     # Not grouped by default
     if closest_obj[i] == []:
-        form_groupID(i)
         groups.append(form_groupID(i)) # Not grouped by default
         curr_group += 1
         
     ## belongs in a group and the index of the neighbour has not been given a group yet
     elif all(idx > len(groups) for idx in closest_obj[i]):
         # create new group
-        form_groupID(i)
         groups.append(form_groupID(i)) # New Group
         curr_group += 1
     
@@ -327,7 +379,6 @@ for i in range(1,num_entry):
         for idx in closest_obj[i]:
             if dir[idx] == dir[i]:
                 # If in the same direction then they are compatible for grouping
-                form_groupID(i)
                 groups.append(str(groups[closest_obj[i][0]]))   # Same group as closest 
                 found_flag = True                               # No issue with choosing the first object as the order in which they are added is consistent for all groups
                 break
@@ -365,4 +416,5 @@ with open(filename, 'w', newline='') as out_file:
     writer = csv.writer(out_file)
     writer.writerows(data)
 
+print()
 print("Task completed with no errors :)")
