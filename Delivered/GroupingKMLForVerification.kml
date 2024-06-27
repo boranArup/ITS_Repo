@@ -2,7 +2,7 @@
 <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
   <Document>
     <name>GPS device</name>
-    <snippet>Created Wed Jun 26 14:42:55 2024 GMT</snippet>
+    <snippet>Created Wed Jun 26 15:06:37 2024 GMT</snippet>
     <LookAt>
       <longitude>-4.681699</longitude>
       <latitude>27.467300</latitude>
@@ -115,13 +115,6 @@
         </Point>
       </Placemark>
       <Placemark>
-        <name>M7E-J10J11-30067E</name>
-        <styleUrl>#waypoint</styleUrl>
-        <Point>
-          <coordinates>-6.725920,53.192400</coordinates>
-        </Point>
-      </Placemark>
-      <Placemark>
         <name>M7W-J11J10-31252W</name>
         <styleUrl>#waypoint</styleUrl>
         <Point>
@@ -161,6 +154,13 @@
         <styleUrl>#waypoint</styleUrl>
         <Point>
           <coordinates>-6.662970,53.241600</coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>M7E-J10J11-30067E</name>
+        <styleUrl>#waypoint</styleUrl>
+        <Point>
+          <coordinates>-6.725920,53.192400</coordinates>
         </Point>
       </Placemark>
       <Placemark>
