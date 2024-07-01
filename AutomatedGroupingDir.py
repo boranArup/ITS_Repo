@@ -1,8 +1,14 @@
 # Personal paths for use
-#  C:/Users/leonardo.boran/AppData/Local/miniforge3/envs/arup-env/python.exe "c:/Users/leonardo.boran/OneDrive - Arup/ITS_Repo/AutomatedGroupingDir.py" TestCoordsCSV.csv OutputCSV.csv
+# Code is ran with variation of this in terminal:
+# C:/Users/leonardo.boran/AppData/Local/miniforge3/envs/arup-env/python.exe "c:/Users/leonardo.boran/OneDrive - Arup/ITS_Repo/AutomatedGroupingDir.py" TestCoordsCSV.csv OutputCSV.csv
+#               ^                                                                            ^                                                               ^               ^
+#               |                                                                            |                                                               |               |
+#              can be replaced by just "python" outlines environment                        The path of this python file                                           Name and path of input and output files separated
+#                                                                                                                                                           Note: include quotes where there are spaces.
+
 
 from sys import argv
-from math import sin, acos, cos, sqrt, radians, degrees, atan2
+from math import sin, cos, sqrt, radians, degrees, atan2
 import csv
 import bisect
 
@@ -16,6 +22,8 @@ junctiondists = []
 markers = [[]]
 dir = ["Direction"]
 
+# Location should relate to path of python file like input and output arguments
+filename_junctions = "ManualJunctions.csv"
 
 # FUNCTIONS:
 # Function to find angle between junctions (3 coords)
@@ -27,6 +35,7 @@ def find_angle(x1,y1,x2,y2,x3,y3):
     if ang > 180:
         ang = 360 - ang
     return ang
+
 
 # Checks if junctions are in the same direction
 def same_dir(j1, j2, j3):
@@ -40,9 +49,6 @@ def same_dir(j1, j2, j3):
         return True
     else:
         return False
-    
-    
-
 
 
 # Function to find distances between sets of two coords, given in degrees
@@ -117,7 +123,6 @@ def form_groupID(idx):
         bisect.insort(minjuncts, [ dist, i])
             
     # Junctions
-    # TODO: ADAPT THIS SECTION TO YOUR ALGORITHM 
     print("Near id "+ str(minjuncts[0][1]), end=" ")
     if minjuncts[0][1] == -1 or markerdist[0] >= 0.75:
         # There is no near junction
@@ -164,15 +169,6 @@ def form_groupID(idx):
             
         id = id + "J" + junctions[minjuncts[0][1]][2] + "J" + junctions[chosen_idx][2]
 
-    
-    '''      
-    if minjuncts[0][1] == "":
-        id = id + "NA"
-    elif minjuncts[1][1] == "":
-        id = id + "J" + minjuncts[0][1] + "J" +minjuncts[0][1]
-    else:
-        id = id + "J" + minjuncts[0][1] + "J" + minjuncts[1][1]
-    '''  
     distuse = 0.0
     lenghtofroad = 0.0
     # Make sure not to select the maker from the same gate
@@ -200,13 +196,10 @@ def form_groupID(idx):
     print(id, end="  ")
     print(minjuncts[0][0])
     
-    #TODO: VERIFY JUNCTION MATCHING TO BE CORRECT, JUDGE THE J11J11 AND NA CATEGORIZED ONES
-    #TODO: VERIFY HEADING, ARE THE ROAD MARKERS GOOD ENOUGH?
-    
     return(id)
 
-
-# CHECK FOR ERRORS IN INPUT:
+# Start of "main"
+# Warn about possible issue relating to ability to open correctly listed files:
 print()   
 print("----------------------------------------------------------------------------------------------------------------------------")
 print("NOTE: If the following error occurs, please make sure either the write file is not currently in use by another application.\n\t\t\"PermissionError: [Errno 13] Permission denied...\"")
@@ -220,16 +213,7 @@ if len(argv) != 3:
     print("----------------------------------------------------------------------------------------------------------------------------")
     exit()
 
-prefix = ".\OneDrive - Arup\\"
 filename =  str(argv[1])
-
-# Basic read and print out full csv
-'''   
-with open(filename, mode ='r') as file:
-csvFile = csv.reader(file)
-for lines in csvFile:
-        print(lines)
-'''
 
 #Read the existing CSV file and store its content
 try:
@@ -252,14 +236,15 @@ num_entry = len(data) # Number of rows
 # data[][19] -> longitude col
 closest_obj = [[-1]]    # 2D list containing the list of nodes/equipment withing grouping distance
 min_dist = [-1]         # Colum Header
-# TODO:Remove min_dist as this information doesn't need to be stored
+
+# min_dist could be removed as this information doesn't need to be stored
+
 f_lat = []              # Float in radians
 f_long = []             #
 missing_data = []   
 
 f_lat.append(0)
 f_long.append(0)
-
 
 for i in range(1,num_entry):
     if data[i][18] != "":
@@ -269,7 +254,8 @@ for i in range(1,num_entry):
         missing_data.append(i)      # Add index to missing data
         f_lat.append(0)
         f_long.append(0)
-        
+
+# Warn about issues with datasets, including equipment with not listed location
 print("Missing indices:")    
 print(missing_data)
 print()
@@ -303,17 +289,15 @@ for i in range(1, num_entry):
             dir[i] = dir[i] + "E"
         elif "WEST" in temp:
             dir[i] = dir[i] + "W"
+            
+        # Were not needed and inconsistently used in document, these are only confirmed against the road chainage markers
+        
         #elif "NORTH" in temp:
             #dir[i] = dir[i] + "N"
         #elif "SOUTH" in temp:
             #dir[i] = dir[i] + "S"    
-            #TODO: DO YOU WANT TO TRANSLATE THESE TO EAST AND WEST???
-
-#print(dir)       
-#print()
 
 #Prepare Junction data for group ID
-filename_junctions = "ManualJunctions.csv"
 #Read the existing CSV file and store its content
 try:
     junctions_file = open(filename_junctions, mode ='r') 
@@ -374,7 +358,6 @@ for i in range(1,num_entry):
     
     # Join existing group if in same direction
     else:
-        #TODO:Go through group to ensure that items grouped with are heading the same direction!
         found_flag = False
         for idx in closest_obj[i]:
             if dir[idx] == dir[i]:
