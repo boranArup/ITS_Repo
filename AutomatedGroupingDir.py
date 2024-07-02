@@ -6,7 +6,6 @@
 #              can be replaced by just "python" outlines environment                        The path of this python file                                           Name and path of input and output files separated
 #                                                                                                                                                           Note: include quotes where there are spaces.
 
-
 from sys import argv
 from math import sin, cos, sqrt, radians, degrees, atan2
 import csv
@@ -17,13 +16,13 @@ import bisect
 # to some nodes is larger than setpoint!
 MAX_GROUP_DIST = 0.035
 data = [[]]
-junctions = [[]]
+junctions = [{}]
 junctiondists = []
 markers = [[]]
 dir = ["Direction"]
 
 # Location should relate to path of python file like input and output arguments
-filename_junctions = "ManualJunctions.csv"
+filename_junctions = 'Test.csv' # "All_M7_Junctions.csv"
 
 # FUNCTIONS:
 # Function to find angle between junctions (3 coords)
@@ -44,7 +43,7 @@ def same_dir(j1, j2, j3):
     ########################################################################################################
     acute = 80
     
-    angle = find_angle(float(j1[0]),float(j1[1]),float(j2[0]),float(j2[1]),float(j3[0]),float(j3[1]))
+    angle = find_angle(float(j1["Lat"]),float(j1["Long"]),float(j2["Lat"]),float(j2["Long"]),float(j3["Lat"]),float(j3["Long"]))
     if angle > acute:
         return True
     else:
@@ -116,11 +115,11 @@ def form_groupID(idx):
     
     minjuncts = []
     for i in range(0,len(junctions)):
-        dist = find_dist(float(junctions[i][0]),float(junctions[i][1]),f_lat[idx],f_long[idx])
+        dist = find_dist(float(junctions[i]["Lat"]),float(junctions[i]["Long"]),f_lat[idx],f_long[idx])
         if dist > max_between_junct:
             i = -1
             dist = max_between_junct
-        bisect.insort(minjuncts, [ dist, i])
+        bisect.insort(minjuncts, [dist, i])
             
     # Junctions
     print("Near id "+ str(minjuncts[0][1]), end=" ")
@@ -136,8 +135,8 @@ def form_groupID(idx):
     
     else:
         # Calculate if between junction pair
-        dist0 = find_dist(float(junctions[minjuncts[0][1]][0]),float(junctions[minjuncts[0][1]][1]),f_lat[idx],f_long[idx])
-        dist1 = find_dist(float(junctions[minjuncts[1][1]][0]),float(junctions[minjuncts[1][1]][1]),f_lat[idx],f_long[idx])
+        dist0 = find_dist(float(junctions[minjuncts[0][1]]["Lat"]),float(junctions[minjuncts[0][1]]["Long"]),f_lat[idx],f_long[idx])
+        dist1 = find_dist(float(junctions[minjuncts[1][1]]["Lat"]),float(junctions[minjuncts[1][1]]["Long"]),f_lat[idx],f_long[idx])
         
         # Default to using 0 and 1 as normal
         chosen_idx = minjuncts[1][1]
@@ -147,27 +146,44 @@ def form_groupID(idx):
         print(", Distance between junctions: ", end=" ")
         print(junctiondists[minjuncts[0][1]], end=" ")
         
+        #TODO: Put a Title on the on the manual junctions csv for clarity and then adjust the code accordingly
+        #TODO: Find out if the closest junction is part of a pair or not and sequentially 
+        # chose which method to use when calculating the two "Between" junctions
+        
         print()
-        if junctiondists[minjuncts[0][1]] < dist0 or junctiondists[minjuncts[0][1]] < dist1:
-    
-            print("Not within junction")        
-            # Check if 0 and 1 have same junction name
-            if junctions[minjuncts[0][1]][2] == junctions[minjuncts[1][1]][2]:
-                print("Has the same name tho")
-                
-                # Check if 2 is a suitable junction or is the following junction nearer by and being incorrectly chosen
-                i = 0
-                
-                while same_dir(junctions[minjuncts[i][1]],junctions[minjuncts[i+1][1]],junctions[minjuncts[i+2][1]]):
-                    # Go to the next junction and recheck if its in the same direction
-                    i += 1
-              
-                # Not in the same direction as the two junction parts use this
-                chosen_idx = minjuncts[i+2][1]   
+        # Is this near a single junction, needed as causes problems with current algorithm
+        if junctions[minjuncts[0][1]]["Number Junctions"] == 1:
+            while same_dir([{"Lat":f_lat[idx]},{"Long":f_long[idx]}],junctions[minjuncts[0][1]],junctions[minjuncts[1][1]]):
+                #TODO: Incriment what are we looking at in some way!!!!!
+                pass
+        #############################################################################################################
+        
+        
+        
+        
+        
+        # Only near a junction pair
         else:
-            print("Within Junction")
-            
-        id = id + "J" + junctions[minjuncts[0][1]][2] + "J" + junctions[chosen_idx][2]
+            if junctiondists[minjuncts[0][1]] < dist0 or junctiondists[minjuncts[0][1]] < dist1:
+        
+                print("Not within junction")        
+                # Check if 0 and 1 have same junction name
+                if junctions[minjuncts[0][1]]["Junction"] == junctions[minjuncts[1][1]]["Junction"]:
+                    print("Has the same name tho")
+                    
+                    # Check if 2 is a suitable junction or is the following junction nearer by and being incorrectly chosen
+                    i = 0
+                    
+                    while same_dir(junctions[minjuncts[i][1]],junctions[minjuncts[i+1][1]],junctions[minjuncts[i+2][1]]):
+                        # Go to the next junction and recheck if its in the same direction
+                        i += 1
+                
+                    # Not in the same direction as the two junction parts use this
+                    chosen_idx = minjuncts[i+2][1]   
+            else:
+                print("Within Junction")
+                
+        id = id + "J" + junctions[minjuncts[0][1]]["Junction"] + "J" + junctions[chosen_idx]["Junction"]
 
     distuse = 0.0
     lenghtofroad = 0.0
@@ -308,17 +324,19 @@ except OSError:
     exit()
     
 with junctions_file:
-    junctionCSV = csv.reader(junctions_file)
+    junctionCSV = csv.DictReader(junctions_file)
     junctions = list(junctionCSV)
+    next(junctionCSV, None)
+    #############################
     
 for source in range(0, len(junctions)):
     # Determine if in a pair
     junctiondists.append(-1)
     for target in range(0, len(junctions)):
-        if junctions[target][2] == junctions[source][2] and junctions[target][1] != junctions[source][1]:
+        if junctions[target]["Junction"] == junctions[source]["Junction"] and junctions[target]["Long"] != junctions[source]["Long"]:
             # These are together
             # Get the distances between matching junctions
-            junctiondists[source] = find_dist(float(junctions[source][0]), float(junctions[source][1]), float(junctions[target][0]), float(junctions[target][1]))
+            junctiondists[source] = find_dist(float(junctions[source]["Lat"]), float(junctions[source]["Long"]), float(junctions[target]["Lat"]), float(junctions[target]["Long"]))
             break
     print([source], end=", ")
     print(junctions[source], end=", ")
