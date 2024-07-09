@@ -22,7 +22,7 @@ markers = [[]]
 dir = ["Direction"]
 
 # Location should relate to path of python file like input and output arguments
-filename_junctions = 'Test.csv' # "All_M7_Junctions.csv"
+filename_junctions = 'All_M7_Junctions.csv' # "All_M7_Junctions.csv"
 
 # FUNCTIONS:
 # Function to find angle between junctions (3 coords)
@@ -126,8 +126,8 @@ def form_groupID(idx):
     if minjuncts[0][1] == -1 or markerdist[0] >= 0.75:
         # There is no near junction
         id = "NOT-IN-SCOPE"
-        print(data[idx][18], end=" ")
-        print(data[idx][19], end="  ")
+        print(coords[idx][0], end=" ")
+        print(coords[idx][1], end="  ")
         print(id, end="  ")
         print(minjuncts[0][0])
         
@@ -147,20 +147,29 @@ def form_groupID(idx):
         print(junctiondists[minjuncts[0][1]], end=" ")
         
         #TODO: Put a Title on the on the manual junctions csv for clarity and then adjust the code accordingly
+        #TODO: Change the name of the CSV file so it has headers
         #TODO: Find out if the closest junction is part of a pair or not and sequentially 
         # chose which method to use when calculating the two "Between" junctions
         
         print()
         # Is this near a single junction, needed as causes problems with current algorithm
+        # TODO: Find out why this is not triggering?????????????????????????????????????????????
+        print("Number junctions of closest neighbour",junctions[minjuncts[0][1]]["Number Junctions"])
         if junctions[minjuncts[0][1]]["Number Junctions"] == 1:
-            while same_dir([{"Lat":f_lat[idx]},{"Long":f_long[idx]}],junctions[minjuncts[0][1]],junctions[minjuncts[1][1]]):
-                #TODO: Incriment what are we looking at in some way!!!!!
-                pass
+        # Initialise 3 current junctions: Equipment location, nearest junction and next nearest
+        # If the nearest and the next nearest are in the same direction then the equipment is not located between the two
+            points = [[{"Lat":f_lat[idx]},{"Long":f_long[idx]}], junctions[minjuncts[0][1]], junctions[minjuncts[1][1]]]
         #############################################################################################################
-        
-        
-        
-        
+            print("------------This nearest junction only has one neighbour-------------")
+            junction_idx = 1 # index of correct closest junction
+            while same_dir(points[junction_idx - 1], points[junction_idx], points[junction_idx + 1]):
+                # Shift the junctions down by appending to the front and then popping off the last one
+                junction_idx += 1
+                points.append(junctions[minjuncts[junction_idx][1]])
+            
+            #Correct index to use has been set
+            chosen_idx = junction_idx
+        #############################################################################################################
         
         # Only near a junction pair
         else:
@@ -202,13 +211,10 @@ def form_groupID(idx):
 
     # Eg. M7E_J9J9A_22141E
     id = id + "-"
-    id = id + str(lenghtofroad) + used_dir
-    
-    if "JEND" in id or "JSTART" in id:
-        id = "NOT-IN-SCOPE"
+    id = id + str(lenghtofroad).zfill(5) + used_dir
         
-    print(data[idx][18], end=" ")
-    print(data[idx][19], end="  ")
+    print(coords[idx][0], end=" ")
+    print(coords[idx][1], end="  ")
     print(id, end="  ")
     print(minjuncts[0][0])
     
@@ -242,14 +248,50 @@ except OSError:
 with in_file:
     csvFile = csv.reader(in_file)
     data = list(csvFile)
+
+coords = [[]]
+
+lendata = 1
+while data[lendata][3] != "":
     
-num_entry = len(data) # Number of rows
+    x = data[lendata][3].replace("Â","")
+    print(x, end=" , ")
+    x = x.replace("°","-")
+    x = x.replace('\'','-')
+    x = x.replace('"','')
+    latitude = x
+
+    y = data[lendata][4].replace("Â","")
+    print(y)
+    y = y.replace("°","-")
+    y = y.replace('\'','-')
+    y = y.replace('"','')
+    longitude = y
+
+
+    E = 'E' in longitude
+    #print(longitude, "  +++")
+    d, m, s = map(float, longitude[:-1].split('-'))
+    longitude = round((d + m / 60. + s / 3600.) * (1 if E else -1),6)
+
+    N = 'N' in latitude
+    #print(latitude, "  +++")
+    d, m, s = map(float, latitude[:-1].split('-'))
+    latitude = round((d + m / 60. + s / 3600.) * (1 if N else -1),6)
+
+    #y =
+    coords.append([latitude,longitude])
+    
+    lendata += 1
+
+
+num_entry = lendata # Number of rows
 # Process the data
 # Remember indexing starts at [0][0]
 # [rows][cols]
 
-# data[][18] -> latitude col
-# data[][19] -> longitude col
+# coords[][0] -> latitude col
+# coords[][1] -> longitude col
 closest_obj = [[-1]]    # 2D list containing the list of nodes/equipment withing grouping distance
 min_dist = [-1]         # Colum Header
 
@@ -263,9 +305,9 @@ f_lat.append(0)
 f_long.append(0)
 
 for i in range(1,num_entry):
-    if data[i][18] != "":
-        f_lat.append((float((data[i][18]))))
-        f_long.append((float((data[i][19]))))
+    if coords[i][0] != "":
+        f_lat.append(coords[i][0])
+        f_long.append(coords[i][1])
     else:
         missing_data.append(i)      # Add index to missing data
         f_lat.append(0)
@@ -293,7 +335,7 @@ for i in range(1,num_entry):
 
 #Fix Directions
 for i in range(1, num_entry):
-    temp = data[i][17].upper()
+    temp = data[i][5].upper()
     if len(temp) == 0:
         dir.append("")
     elif len(temp) == 1:
@@ -390,7 +432,7 @@ for i in range(1,num_entry):
             groups.append(form_groupID(i)) # New Group
             curr_group += 1
     
-    # UNCOMMENT FOR INFO ON ALL PAIRINGS IN A MAKESHIFT TABLE
+    # OUTDATED
     '''
     print("Group No. : " +  "%15s" %str(groups[i]) + ",\t Index : " + str(i) + ",\t Neighbour : " + "%25s" % str(closest_obj[i]) + ",\t ID : " +  "%11s" %str(data[i][1]), end=" | ")
     #print("ID : " +  "%23s" %str(data[i][0]), end=" | ")
