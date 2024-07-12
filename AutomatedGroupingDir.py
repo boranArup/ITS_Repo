@@ -163,10 +163,11 @@ def form_groupID(idx):
         #############################################################################################################
             print("------------This nearest junction only has one neighbour-------------")
             junction_idx = 1 # index of correct closest junction
-            while same_dir(points[junction_idx - 1], points[junction_idx], points[junction_idx + 1]):
+            print(points)
+            #while same_dir(points[junction_idx - 1], points[junction_idx], points[junction_idx + 1]):
                 # Shift the junctions down by appending to the front and then popping off the last one
-                junction_idx += 1
-                points.append(junctions[minjuncts[junction_idx][1]])
+            #    junction_idx += 1
+            #    points.append(junctions[minjuncts[junction_idx][1]])
             
             #Correct index to use has been set
             chosen_idx = junction_idx

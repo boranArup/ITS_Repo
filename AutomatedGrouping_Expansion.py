@@ -122,12 +122,12 @@ def form_groupID(idx):
         bisect.insort(minjuncts, [dist, i])
             
     # Junctions
-    print("Near id "+ str(minjuncts[0][1]), end=" ")
+    #print("Near id "+ str(minjuncts[0][1]), end=" ")
     if minjuncts[0][1] == -1 or markerdist[0] >= 0.75:
         # There is no near junction
         id = "NOT-IN-SCOPE"
-        print(data[idx][18], end=" ")
-        print(data[idx][19], end="  ")
+        print(f_lat[idx], end=" ")
+        print(f_long[idx], end="  ")
         print(id, end="  ")
         print(minjuncts[0][0])
         
@@ -143,8 +143,8 @@ def form_groupID(idx):
         
         # Check if 0 and 1 are *NOT* two ends of a junction and the equipment is within these bounds
         print(junctions[minjuncts[0][1]], end=" ")
-        print(", Distance between junctions: ", end=" ")
-        print(junctiondists[minjuncts[0][1]], end=" ")
+        #print(", Distance between junctions: ", end=" ")
+        #print(junctiondists[minjuncts[0][1]], end=" ")
         
         #TODO: Put a Title on the on the manual junctions csv for clarity and then adjust the code accordingly
         #TODO: Find out if the closest junction is part of a pair or not and sequentially 
@@ -152,24 +152,33 @@ def form_groupID(idx):
         
         print()
         # Is this near a single junction, needed as causes problems with current algorithm
-        if junctions[minjuncts[0][1]]["Number Junctions"] == 1:
-            while same_dir([{"Lat":f_lat[idx]},{"Long":f_long[idx]}],junctions[minjuncts[0][1]],junctions[minjuncts[1][1]]):
-                #TODO: Incriment what are we looking at in some way!!!!!
-                pass
+        if int(junctions[minjuncts[0][1]]["Number Junctions"]) == 1:
+            # Initialise 3 current junctions: Equipment location, nearest junction and next nearest
+            # If the nearest and the next nearest are in the same direction then the equipment is not located between the two
+            points = [{"Lat":f_lat[idx],"Long":f_long[idx]}, junctions[minjuncts[0][1]], junctions[minjuncts[1][1]]]
         #############################################################################################################
-        
-        
-        
-        
-        
+            print("------------This nearest junction only has one neighbor-------------")
+            junction_idx = 1 # index of correct closest junction
+            #print(points)
+            while same_dir(points[junction_idx - 1], points[junction_idx], points[junction_idx + 1]):
+                # Shift the junctions down by appending to the front and then popping off the last one
+                print(minjuncts[junction_idx][1])
+                junction_idx += 1
+                points.append(junctions[minjuncts[junction_idx][1]])
+            
+            #Correct index to use has been set
+            chosen_idx = minjuncts[junction_idx][1]
+        #############################################################################################################
+
+
         # Only near a junction pair
         else:
             if junctiondists[minjuncts[0][1]] < dist0 or junctiondists[minjuncts[0][1]] < dist1:
         
-                print("Not within junction")        
+                #print("Not within junction")        
                 # Check if 0 and 1 have same junction name
                 if junctions[minjuncts[0][1]]["Junction"] == junctions[minjuncts[1][1]]["Junction"]:
-                    print("Has the same name tho")
+                    #print("Has the same name tho")
                     
                     # Check if 2 is a suitable junction or is the following junction nearer by and being incorrectly chosen
                     i = 0
@@ -181,9 +190,10 @@ def form_groupID(idx):
                     # Not in the same direction as the two junction parts use this
                     chosen_idx = minjuncts[i+2][1]   
             else:
-                print("Within Junction")
+                #print("Within Junction")
+                pass
                 
-        id = id + "J" + junctions[minjuncts[0][1]]["Junction"] + "J" + junctions[chosen_idx]["Junction"]
+        id = id + "J" + junctions[minjuncts[0][1]]["Junction"].zfill(2) + "J" + junctions[chosen_idx]["Junction"].zfill(2)
 
     distuse = 0.0
     lenghtofroad = 0.0
@@ -202,15 +212,15 @@ def form_groupID(idx):
 
     # Eg. M7E_J9J9A_22141E
     id = id + "-"
-    id = id + str(lenghtofroad) + used_dir
+    id = id + str(lenghtofroad).zfill(5) + used_dir
     
     if "JEND" in id or "JSTART" in id:
         id = "NOT-IN-SCOPE"
         
-    print(data[idx][18], end=" ")
-    print(data[idx][19], end="  ")
+    print(f_lat[idx], end=" ")
+    print(f_long[idx])
     print(id, end="  ")
-    print(minjuncts[0][0])
+    #print(minjuncts[0][0])
     
     return(id)
 
@@ -248,8 +258,8 @@ num_entry = len(data) # Number of rows
 # Remember indexing starts at [0][0]
 # [rows][cols]
 
-# data[][18] -> latitude col
-# data[][19] -> longitude col
+# f_lat[] -> latitude col (data[i][18])
+# f_long[] -> longitude col (data[i][19])
 closest_obj = [[-1]]    # 2D list containing the list of nodes/equipment withing grouping distance
 min_dist = [-1]         # Colum Header
 
@@ -264,8 +274,8 @@ f_long.append(0)
 
 for i in range(1,num_entry):
     if data[i][18] != "":
-        f_lat.append((float((data[i][18]))))
-        f_long.append((float((data[i][19]))))
+        f_lat.append(float(data[i][18]))
+        f_long.append(float(data[i][19]))
     else:
         missing_data.append(i)      # Add index to missing data
         f_lat.append(0)
@@ -294,6 +304,8 @@ for i in range(1,num_entry):
 #Fix Directions
 for i in range(1, num_entry):
     temp = data[i][17].upper()
+    # REPLACE:
+    # temp = data[i][5].upper()
     if len(temp) == 0:
         dir.append("")
     elif len(temp) == 1:
@@ -332,15 +344,16 @@ with junctions_file:
 for source in range(0, len(junctions)):
     # Determine if in a pair
     junctiondists.append(-1)
-    for target in range(0, len(junctions)):
-        if junctions[target]["Junction"] == junctions[source]["Junction"] and junctions[target]["Long"] != junctions[source]["Long"]:
-            # These are together
-            # Get the distances between matching junctions
-            junctiondists[source] = find_dist(float(junctions[source]["Lat"]), float(junctions[source]["Long"]), float(junctions[target]["Lat"]), float(junctions[target]["Long"]))
-            break
-    print([source], end=", ")
-    print(junctions[source], end=", ")
-    print(junctiondists[source])
+    if int(junctions[source]["Number Junctions"]) == 2:
+        for target in range(0, len(junctions)):
+            if junctions[target]["Junction"] == junctions[source]["Junction"] and junctions[target]["Long"] != junctions[source]["Long"]:
+                # These are together
+                # Get the distances between matching junctions
+                junctiondists[source] = find_dist(float(junctions[source]["Lat"]), float(junctions[source]["Long"]), float(junctions[target]["Lat"]), float(junctions[target]["Long"]))
+                break
+    #print([source], end=", ")
+    #print(junctions[source], end=", ")
+    #print(junctiondists[source])
 
 
 #Prepare Junction data for group ID
@@ -356,7 +369,6 @@ except OSError:
 with markers_file:
     markerCSV = csv.reader(markers_file)
     markers = list(markerCSV)    
-
 
 # Create and assign group numbers
 curr_group = 1
@@ -390,20 +402,6 @@ for i in range(1,num_entry):
             groups.append(form_groupID(i)) # New Group
             curr_group += 1
     
-    # UNCOMMENT FOR INFO ON ALL PAIRINGS IN A MAKESHIFT TABLE
-    '''
-    print("Group No. : " +  "%15s" %str(groups[i]) + ",\t Index : " + str(i) + ",\t Neighbour : " + "%25s" % str(closest_obj[i]) + ",\t ID : " +  "%11s" %str(data[i][1]), end=" | ")
-    #print("ID : " +  "%23s" %str(data[i][0]), end=" | ")
-    for item in closest_obj[i]:
-        print("%11s" %data[item][1], end=", ")
-    print()    
-#print(closest_obj)
-print()    
-print(groups)
-print()    
-print(len(groups))
-'''
-
 data[0].append('Group ID')
 
 # Add the new column values to the remaining rows of the data
@@ -416,6 +414,7 @@ filename =  str(argv[2])
 with open(filename, 'w', newline='') as out_file:
     writer = csv.writer(out_file)
     writer.writerows(data)
+''''''
 
 print()
 print("Task completed with no errors :)")
