@@ -16,7 +16,70 @@ import bisect
 # to some nodes is larger than setpoint!
 MAX_GROUP_DIST = 0.035
 data = [[]]
-junctions = [{}]
+
+junctions = [
+    {"Lat":53.319129, "Long":-6.364785, "Junction":"01", "Number Junctions":2},
+    {"Lat":53.317002, "Long":-6.374231, "Junction":"01", "Number Junctions":2},
+    {"Lat":53.314538, "Long":-6.38374, "Junction":"1A", "Number Junctions":2},
+    {"Lat":53.311893, "Long":-6.397661, "Junction":"1A", "Number Junctions":2},
+    {"Lat":53.304472, "Long":-6.412533, "Junction":"2", "Number Junctions":2},
+    {"Lat":53.299882, "Long":-6.422897, "Junction":"2", "Number Junctions":2},
+    {"Lat":53.294148, "Long":-6.428512, "Junction":"3", "Number Junctions":2},
+    {"Lat":53.293394, "Long":-6.430316, "Junction":"3", "Number Junctions":2},
+    {"Lat":53.29171, "Long":-6.436477, "Junction":"3A", "Number Junctions":2},
+    {"Lat":53.291735, "Long":-6.438328, "Junction":"3A", "Number Junctions":2},
+    {"Lat":53.286277, "Long":-6.453426, "Junction":"4", "Number Junctions":2},
+    {"Lat":53.282344, "Long":-6.473934, "Junction":"4", "Number Junctions":2},
+    {"Lat":53.268384, "Long":-6.521651, "Junction":"5", "Number Junctions":2},
+    {"Lat":53.268361, "Long":-6.521136, "Junction":"5", "Number Junctions":2},
+    {"Lat":53.259159, "Long":-6.54885, "Junction":"6", "Number Junctions":2},
+    {"Lat":53.257866, "Long":-6.552666, "Junction":"6", "Number Junctions":2},
+    {"Lat":53.254697, "Long":-6.565342, "Junction":"7", "Number Junctions":2},
+    {"Lat":53.252001, "Long":-6.580663, "Junction":"7", "Number Junctions":2},
+    {"Lat":53.2432, "Long":-6.608322, "Junction":"8", "Number Junctions":2},
+    {"Lat":53.239547, "Long":-6.61786, "Junction":"8", "Number Junctions":2},
+    {"Lat":53.235729, "Long":-6.627183, "Junction":"9", "Number Junctions":2},
+    {"Lat":53.236506, "Long":-6.640046, "Junction":"9", "Number Junctions":2},
+    {"Lat":53.236928, "Long":-6.677033, "Junction":"9A", "Number Junctions":2},
+    {"Lat":53.23096, "Long":-6.690526, "Junction":"9A", "Number Junctions":2},
+    {"Lat":53.21081, "Long":-6.708256, "Junction":"10", "Number Junctions":2},
+    {"Lat":53.204215, "Long":-6.718432, "Junction":"10", "Number Junctions":2},
+    {"Lat":53.174512, "Long":-6.746361, "Junction":"11", "Number Junctions":1},
+    {"Lat":53.1626, "Long":-6.817389, "Junction":"12", "Number Junctions":2},
+    {"Lat":53.161878, "Long":-6.828102, "Junction":"12", "Number Junctions":2},
+    {"Lat":53.151289, "Long":-6.910512, "Junction":"13", "Number Junctions":2},
+    {"Lat":53.15311, "Long":-6.926945, "Junction":"13", "Number Junctions":2},
+    {"Lat":53.147085, "Long":-7.007526, "Junction":"14", "Number Junctions":2},
+    {"Lat":53.144047, "Long":-7.022556, "Junction":"14", "Number Junctions":2},
+    {"Lat":53.091381, "Long":-7.168647, "Junction":"15", "Number Junctions":2},
+    {"Lat":53.086276, "Long":-7.177975, "Junction":"15", "Number Junctions":2},
+    {"Lat":53.054243, "Long":-7.234712, "Junction":"16", "Number Junctions":2},
+    {"Lat":53.046533, "Long":-7.242269, "Junction":"16", "Number Junctions":2},
+    {"Lat":53.013368, "Long":-7.294671, "Junction":"17", "Number Junctions":2},
+    {"Lat":53.013661, "Long":-7.311163, "Junction":"17", "Number Junctions":2},
+    {"Lat":53.019935, "Long":-7.33462, "Junction":"18", "Number Junctions":2},
+    {"Lat":53.018383, "Long":-7.350444, "Junction":"18", "Number Junctions":2},
+    {"Lat":52.924782, "Long":-7.477539, "Junction":"19", "Number Junctions":1},
+    {"Lat":52.924048, "Long":-7.622757, "Junction":"21", "Number Junctions":2},
+    {"Lat":52.92307, "Long":-7.637203, "Junction":"21", "Number Junctions":2},
+    {"Lat":52.922166, "Long":-7.792741, "Junction":"22", "Number Junctions":2},
+    {"Lat":52.92113, "Long":-7.795943, "Junction":"22", "Number Junctions":2},
+    {"Lat":52.886449, "Long":-7.943307, "Junction":"23", "Number Junctions":2},
+    {"Lat":52.886265, "Long":-7.946158, "Junction":"23", "Number Junctions":2},
+    {"Lat":52.860843, "Long":-8.114353, "Junction":"24", "Number Junctions":2},
+    {"Lat":52.858749, "Long":-8.125175, "Junction":"24", "Number Junctions":2},
+    {"Lat":52.851924, "Long":-8.149167, "Junction":"25", "Number Junctions":2},
+    {"Lat":52.848736, "Long":-8.167271, "Junction":"25", "Number Junctions":2},
+    {"Lat":52.84482, "Long":-8.240377, "Junction":"26", "Number Junctions":2},
+    {"Lat":52.84499, "Long":-8.258259, "Junction":"26", "Number Junctions":2},
+    {"Lat":52.758912, "Long":-8.403565, "Junction":"27", "Number Junctions":2},
+    {"Lat":52.754809, "Long":-8.414376, "Junction":"27", "Number Junctions":2},
+    {"Lat":52.678343, "Long":-8.511562, "Junction":"28", "Number Junctions":2},
+    {"Lat":52.669863, "Long":-8.515563, "Junction":"28", "Number Junctions":2},
+    {"Lat":52.65039, "Long":-8.558517, "Junction":"29", "Number Junctions":2},
+    {"Lat":52.644305, "Long":-8.567894, "Junction":"29", "Number Junctions":2},
+    {"Lat":52.640676, "Long":-8.615899, "Junction":"30", "Number Junctions":1}
+    ]
 junctiondists = []
 markers = [[]]
 dir = ["Direction"]
@@ -334,12 +397,6 @@ except OSError:
     print("ERROR: Filenames/Location. Please ensure path to junctions file is correct and are enclosed in \"\".")
     print("----------------------------------------------------------------------------------------------------------------------------")
     exit()
-    
-with junctions_file:
-    junctionCSV = csv.DictReader(junctions_file)
-    junctions = list(junctionCSV)
-    next(junctionCSV, None)
-    #############################
     
 for source in range(0, len(junctions)):
     # Determine if in a pair
