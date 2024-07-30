@@ -882,6 +882,7 @@ for source in range(0, len(junctions)):
 # Prepare ID string
 def getID(lat_temp,long_temp,direction,fmt):
     #TODO: Setup csv info
+    print(lat_temp,",",long_temp, "coords provided")
     id = ""
     lat = 0.0
     long = 0.0
@@ -890,14 +891,12 @@ def getID(lat_temp,long_temp,direction,fmt):
         # Reformat
         x = lat_temp.replace("Â","")    # This can copy in as a glitch
         x = x.strip()                   # Removes unintentional whitespace included
-        #print(x, end=" , ")
         x = x.replace("°","-")
         x = x.replace('\'','-')
         x = x.replace('"','')
         latitude = x
 
         y = long_temp.replace("Â","")
-        #print(y)
         y = y.strip()
         y = y.replace("°","-")
         y = y.replace('\'','-')
@@ -906,12 +905,10 @@ def getID(lat_temp,long_temp,direction,fmt):
 
 
         E = 'E' in longitude
-        #print(longitude, "  +++")
         d, m, s = map(float, longitude[:-1].split('-'))
         long = round((d + m / 60. + s / 3600.) * (1 if E else -1),6)
 
         N = 'N' in latitude
-        #print(latitude, "  +++")
         d, m, s = map(float, latitude[:-1].split('-'))
         lat = round((d + m / 60. + s / 3600.) * (1 if N else -1),6)
     else:
@@ -969,7 +966,6 @@ def getID(lat_temp,long_temp,direction,fmt):
         bisect.insort(minjuncts, [dist, i])
             
     # Junctions
-    #print("Near id "+ str(minjuncts[0][1]), end=" ")
     if minjuncts[0][1] == -1 or markerdist[0] >= 0.75:
         # There is no near junction
         id = "NOT-IN-SCOPE"
@@ -989,7 +985,7 @@ def getID(lat_temp,long_temp,direction,fmt):
         chosen_idx = minjuncts[1][1]
         
         # Check if 0 and 1 are *NOT* two ends of a junction and the equipment is within these bounds
-        print(junctions[minjuncts[0][1]], end=" ")
+        #print(junctions[minjuncts[0][1]], end=" ")
         #print(", Distance between junctions: ", end=" ")
         #print(junctiondists[minjuncts[0][1]], end=" ")
         
@@ -1004,12 +1000,12 @@ def getID(lat_temp,long_temp,direction,fmt):
             # If the nearest and the next nearest are in the same direction then the equipment is not located between the two
             points = [{"Lat":lat,"Long":long}, junctions[minjuncts[0][1]], junctions[minjuncts[1][1]]]
         #############################################################################################################
-            print("------------This nearest junction only has one neighbor-------------")
+            #print("------------This nearest junction only has one neighbor-------------")
             junction_idx = 1 # index of correct closest junction
             #print(points)
             while same_dir(points[junction_idx - 1], points[junction_idx], points[junction_idx + 1]):
                 # Shift the junctions down by appending to the front and then popping off the last one
-                print(minjuncts[junction_idx][1])
+                #print(minjuncts[junction_idx][1])
                 junction_idx += 1
                 points.append(junctions[minjuncts[junction_idx][1]])
             
@@ -1064,9 +1060,10 @@ def getID(lat_temp,long_temp,direction,fmt):
     if "JEND" in id or "JSTART" in id:
         id = "NOT-IN-SCOPE"
         
-    print(lat, end=" ")
-    print(long)
-    print(id, end="  ")
+    print(lat, end=", ")
+    print(long, end=" ")
+    print("coords used for calculation")
+    print(id)
     
     return(id)
 
@@ -1074,18 +1071,29 @@ root = tk.Tk()
 root.title("Location ID Generator")
 
 # setting the window size
-root.geometry("400x250")
+root.geometry("500x350")
 
 # declaring string variables for storing latitude and longitude
 lat_var = tk.StringVar()
 long_var = tk.StringVar()
 dir_var = tk.StringVar()
+combined_var = tk.StringVar()
 
 # defining a function that will get the latitude and longitude and print them on the screen
 def submit():
-    lat = lat_var.get()
-    long = long_var.get()
-    direction = (dir_var.get())
+    # Separator between conversion requests for debugging
+    print()
+    print("========================")
+    print()
+    
+    combined = combined_var.get()
+    if combined != "":
+        combined = combined.replace(","," ")
+        lat, long = combined.split()
+    else:
+        lat = lat_var.get()
+        long = long_var.get()
+    direction = (dir_var.get()).upper()
     format = choice_var.get() == "X.X, -X.X"
     
 ##################################################################################################
@@ -1098,20 +1106,29 @@ def submit():
     output_text.insert(tk.END, ID)
     output_text.config(state=tk.DISABLED)
     
+    combined_var.set("")
     lat_var.set("")
     long_var.set("")
     dir_var.set("")
-    print(format)
-
+    print()
+    if format:
+        print(choices[0], "chosen.")
+    else:
+        print(choices[1], "chosen.")
 # creating labels and entries for latitude and longitude
-lat_label = tk.Label(root, text='Latitude', font=('calibre', 10, 'bold'))
-lat_entry = tk.Entry(root, textvariable=lat_var, font=('calibre', 10, 'normal'))
-
 choice_label = tk.Label(root, text='Coord Type', font=('calibre', 10, 'bold'))
 choice_var = tk.StringVar(root)
 choices = ("X.X, -X.X", "XX°XX\'X.XX\"N	X°XX\'X.XX\"W")
 choice_var.set(choices[0])
 choice_entry = tk.OptionMenu(root, choice_var, *choices)
+
+info_label = tk.Label(root, text='\nPlease select coordinate format and then fill out either\n cood pair/individual lat and long boxes and then the desired carriageway direction\n', font=('calibre', 10, 'normal'))
+
+combined_label = tk.Label(root, text='Cood Pair (Optional)', font=('calibre', 10, 'bold'))
+combined_entry = tk.Entry(root, textvariable=combined_var, font=('calibre', 10, 'normal'))
+
+lat_label = tk.Label(root, text='Latitude', font=('calibre', 10, 'bold'))
+lat_entry = tk.Entry(root, textvariable=lat_var, font=('calibre', 10, 'normal'))
 
 long_label = tk.Label(root, text='Longitude', font=('calibre', 10, 'bold'))
 long_entry = tk.Entry(root, textvariable=long_var, font=('calibre', 10, 'normal'))
@@ -1126,16 +1143,19 @@ output_text = tk.Text(root, height=5, width=50, state=tk.DISABLED)
 sub_btn = tk.Button(root, text='Submit', command=submit)
 
 # placing the labels, entries, and button in the required position using grid method
+info_label.grid(row=0, column=0, columnspan=2)
 choice_label.grid(row=1, column=0)
 choice_entry.grid(row=1, column=1)
-lat_label.grid(row=2, column=0)
-lat_entry.grid(row=2, column=1)
-long_label.grid(row=3, column=0)
-long_entry.grid(row=3, column=1)
-dir_label.grid(row=4, column=0)
-dir_entry.grid(row=4, column=1)
-sub_btn.grid(row=5, column=1)
-output_text.grid(row=6, column=0, columnspan=2)
+combined_label.grid(row=2, column=0)
+combined_entry.grid(row=2, column=1)
+lat_label.grid(row=3, column=0)
+lat_entry.grid(row=3, column=1)
+long_label.grid(row=4, column=0)
+long_entry.grid(row=4, column=1)
+dir_label.grid(row=5, column=0)
+dir_entry.grid(row=5, column=1)
+sub_btn.grid(row=6, column=1)
+output_text.grid(row=7, column=0, columnspan=2)
 
 # performing an infinite loop for the window to display
 root.mainloop()
