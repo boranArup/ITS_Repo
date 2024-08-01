@@ -821,7 +821,6 @@ markers = [
     [-8.605073,52.640393,186.5,"N07D2ML","M","7","E","M7 E 186.5"],
 ]
 
-
 # Location should relate to path of python file like input and output arguments
 filename_junctions = 'All_M7_Junctions.csv' # "All_M7_Junctions.csv"
 
